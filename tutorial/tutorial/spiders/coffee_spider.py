@@ -13,17 +13,31 @@ def get_json_urls():
         urls.append(link_object['link'])
     f.close()
     return urls
-def filter_name(input_str):
+def filter_name(input_str:str) -> str:
     nfkd_form = unicodedata.normalize('NFKD', input_str)
     no_accents = u"".join([c for c in nfkd_form if not unicodedata.combining(c)])
     no_accents = no_accents.replace(" Subscription", "").replace("BARREL COFFEE SERIES - ", "")
     decoded = bytes(no_accents, "utf-8").decode("unicode_escape").strip()
     return decoded
-def filtered_details_list(input_arr, target_attr):
+
+def split_after_colon_splice(input_str: str) -> str:
+    return input_str.split(":")[1].strip()
+
+def isolate_descriptor(input_str: str, attr: str) -> str:
+    return input_str.replace(attr, "").strip()
+
+def filtered_details_list(input_arr: list[str]):
     return {
         'amount' : input_arr[0].split(" of beans ")[0],
-        'location': input_arr[0].split(" of beans from ")[1].split(",")[0]
-
+        'location': filter_name(input_arr[0].split(" of beans from ")[1].split(",")[0]),
+        'region': filter_name(split_after_colon_splice(input_arr[1])),
+        'altitude': split_after_colon_splice(input_arr[2]),
+        'variety': filter_name(split_after_colon_splice(input_arr[3])),
+        'process': split_after_colon_splice(input_arr[4]),
+        'acidity': isolate_descriptor(input_arr[5], "Acidity"),
+        'body': isolate_descriptor(input_arr[6], "Body"),
+        'sweetness': isolate_descriptor(input_arr[7], "Sweetness"),
+        'smoothness': isolate_descriptor(input_arr[8], "Smoothness"),
     }
 
 class CoffeeSpider(scrapy.Spider):
@@ -42,4 +56,5 @@ class CoffeeSpider(scrapy.Spider):
             'name': filtered_coffee_name,
             'price': price,
             'image_link' : image_link,
+            **details_object
         }
